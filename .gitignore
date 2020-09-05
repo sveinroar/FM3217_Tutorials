@@ -4,3 +4,9 @@ buildlog.txt
 dslog.txt
 
 dsmodel.c
+
+*.txt
+
+*.mat
+
+dymosim*
