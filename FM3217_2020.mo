@@ -78,6 +78,43 @@ package FM3217_2020 "Collection of models as created in FM3217"
       annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
             coordinateSystem(preserveAspectRatio=false)));
     end Motor;
+
+    model Motordrive
+      Motor motor
+        annotation (Placement(transformation(extent={{0,24},{20,44}})));
+      Modelica.Blocks.Math.Feedback positionerror
+        annotation (Placement(transformation(extent={{-66,24},{-46,44}})));
+      Modelica.Blocks.Sources.Step step
+        annotation (Placement(transformation(extent={{-94,24},{-74,44}})));
+      Modelica.Blocks.Continuous.PID controller
+        annotation (Placement(transformation(extent={{-32,24},{-12,44}})));
+      Modelica.Mechanics.Rotational.Components.IdealGear gearbox(ratio=100)
+        annotation (Placement(transformation(extent={{30,24},{50,44}})));
+      Modelica.Mechanics.Rotational.Components.Inertia load(J=5)
+        annotation (Placement(transformation(extent={{58,24},{78,44}})));
+      Modelica.Mechanics.Rotational.Sensors.AngleSensor angleSensor annotation
+        (Placement(transformation(
+            extent={{-10,-10},{10,10}},
+            rotation=-90,
+            origin={90,-6})));
+    equation
+      connect(step.y, positionerror.u1)
+        annotation (Line(points={{-73,34},{-64,34}}, color={0,0,127}));
+      connect(positionerror.y, controller.u)
+        annotation (Line(points={{-47,34},{-34,34}}, color={0,0,127}));
+      connect(controller.y, motor.u)
+        annotation (Line(points={{-11,34},{-2,34}}, color={0,0,127}));
+      connect(motor.flange, gearbox.flange_a)
+        annotation (Line(points={{20,34},{30,34}}, color={0,0,0}));
+      connect(gearbox.flange_b, load.flange_a)
+        annotation (Line(points={{50,34},{58,34}}, color={0,0,0}));
+      connect(load.flange_b, angleSensor.flange)
+        annotation (Line(points={{78,34},{90,34},{90,4}}, color={0,0,0}));
+      connect(angleSensor.phi, positionerror.u2) annotation (Line(points={{90,
+              -17},{90,-38},{-56,-38},{-56,26}}, color={0,0,127}));
+      annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
+            coordinateSystem(preserveAspectRatio=false)));
+    end Motordrive;
   end Tutorial2;
   annotation (uses(Modelica(version="3.2.3")));
 end FM3217_2020;
