@@ -76,7 +76,8 @@ package FM3217_2020 "Collection of models as created in FM3217"
       connect(inertia.flange_b, flange)
         annotation (Line(points={{70,0},{100,0}}, color={0,0,0}));
       annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
-            coordinateSystem(preserveAspectRatio=false)));
+            coordinateSystem(preserveAspectRatio=false)),
+        experiment(StopTime=100));
     end Motor;
 
     model Motordrive
@@ -84,9 +85,12 @@ package FM3217_2020 "Collection of models as created in FM3217"
         annotation (Placement(transformation(extent={{0,24},{20,44}})));
       Modelica.Blocks.Math.Feedback positionerror
         annotation (Placement(transformation(extent={{-66,24},{-46,44}})));
-      Modelica.Blocks.Sources.Step step
+      Modelica.Blocks.Sources.Step step(startTime=0.5)
         annotation (Placement(transformation(extent={{-94,24},{-74,44}})));
-      Modelica.Blocks.Continuous.PID controller
+      Modelica.Blocks.Continuous.PID controller(
+        k=10,
+        Ti=2,
+        Td=0.01)
         annotation (Placement(transformation(extent={{-32,24},{-12,44}})));
       Modelica.Mechanics.Rotational.Components.IdealGear gearbox(ratio=100)
         annotation (Placement(transformation(extent={{30,24},{50,44}})));
