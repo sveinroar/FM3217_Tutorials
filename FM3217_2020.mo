@@ -613,5 +613,202 @@ package FM3217_2020 "Collection of models as created in FM3217"
           __Dymola_Algorithm="Radau"));
     end WaterWaySurgeShaft;
   end Tutorial5;
+
+  package Tutorial6
+    model ReservoirBaseModel
+      inner HydroPower.System_HPL system_HPL(steadyState=true,
+          constantTemperature=true)
+        annotation (Placement(transformation(extent={{-100,80},{-80,100}})));
+      HydroPower.HydroSystems.Reservoir headwater
+        annotation (Placement(transformation(extent={{-70,40},{-50,60}})));
+      HydroPower.HydroSystems.Reservoir tailwater
+        annotation (Placement(transformation(extent={{46,0},{66,20}})));
+      HydroPower.HydroSystems.Pipe conduit(horizontalIcon=true, L=1000)
+        annotation (Placement(transformation(extent={{-42,34},{-22,54}})));
+    equation
+      connect(headwater.a2_pipe, conduit.a)
+        annotation (Line(points={{-49,44},{-43,44}}, color={0,0,255}));
+      annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
+            coordinateSystem(preserveAspectRatio=false)));
+    end ReservoirBaseModel;
+
+    model TwoReservoirs
+      extends Modelica.Icons.Example;
+      extends ReservoirBaseModel(conduit(ZL=100));
+    equation
+      connect(conduit.b, tailwater.a1_pipe) annotation (Line(points={{-21,44},{
+              20,44},{20,4},{59,4}}, color={0,0,255}));
+      annotation (experiment(StopTime=600, __Dymola_Algorithm="Radau"));
+    end TwoReservoirs;
+
+    model TwoReservoirsWithSource
+      extends Modelica.Icons.Example;
+      extends ReservoirBaseModel(conduit(ZL=100));
+      HydroPower.SinksAndSources.Fixed_HT constantWaterHead(
+        paraOption=false,
+        H_const=75,
+        Hmax=100,
+        depth=50)
+        annotation (Placement(transformation(extent={{-98,46},{-78,66}})));
+      HydroPower.SinksAndSources.Fixed_HT constantTailWater(
+        paraOption=false,
+        H_const=75,
+        Hmax=100,
+        depth=50)
+        annotation (Placement(transformation(extent={{98,6},{78,26}})));
+    equation
+      connect(conduit.b, tailwater.a1_pipe) annotation (Line(points={{-21,44},{
+              18,44},{18,4},{45,4}}, color={0,0,255}));
+      connect(constantWaterHead.b, headwater.a1_open)
+        annotation (Line(points={{-77,56},{-71,56}}, color={0,0,255}));
+      connect(tailwater.a2_open, constantTailWater.b)
+        annotation (Line(points={{67,16},{77,16}}, color={0,0,255}));
+    end TwoReservoirsWithSource;
+
+    model WaterWayRes
+      extends Modelica.Icons.Example;
+      extends ReservoirBaseModel(conduit(
+          L=10000,
+          ZL=100,
+          ZR=90));
+      HydroPower.SinksAndSources.Fixed_HT constantWaterHead(
+        paraOption=false,
+        H_const=75,
+        Hmax=100,
+        depth=50)
+        annotation (Placement(transformation(extent={{-98,46},{-78,66}})));
+      HydroPower.SinksAndSources.Fixed_HT constantTailWater(
+        paraOption=false,
+        H_const=75,
+        Hmax=100,
+        depth=50)
+        annotation (Placement(transformation(extent={{96,6},{76,26}})));
+      HydroPower.HydroSystems.SurgeTank surgeTank(D=30, deltZ=100)
+        annotation (Placement(transformation(extent={{-10,34},{10,54}})));
+      HydroPower.HydroSystems.PipeValve pressureshaft(ZL=90)
+        annotation (Placement(transformation(extent={{16,-6},{36,14}})));
+      Modelica.Blocks.Sources.Ramp ramp(duration=10, startTime=100)
+        annotation (Placement(transformation(extent={{-12,64},{8,84}})));
+    equation
+      connect(headwater.a1_open, constantWaterHead.b)
+        annotation (Line(points={{-71,56},{-77,56}}, color={0,0,255}));
+      connect(tailwater.a2_open, constantTailWater.b)
+        annotation (Line(points={{67,16},{75,16}}, color={0,0,255}));
+      connect(conduit.b, surgeTank.a)
+        annotation (Line(points={{-21,44},{-11,44}}, color={0,0,255}));
+      connect(surgeTank.b, pressureshaft.a) annotation (Line(points={{11,44},{
+              14,44},{14,4},{15,4}}, color={0,0,255}));
+      connect(tailwater.a1_pipe, pressureshaft.b)
+        annotation (Line(points={{45,4},{37,4}}, color={0,0,255}));
+      connect(ramp.y, pressureshaft.ValveCtrl)
+        annotation (Line(points={{9,74},{26,74},{26,15}}, color={0,0,127}));
+      annotation (experiment(
+          StopTime=600,
+          __Dymola_NumberOfIntervals=5000,
+          __Dymola_Algorithm="Radau"));
+    end WaterWayRes;
+
+    model WaterWatResClosingValve
+      extends WaterWayRes(ramp(
+          height=-1,
+          duration=1,
+          offset=1), system_HPL(Q_start=31.276));
+      annotation (experiment(
+          StopTime=600,
+          __Dymola_NumberOfIntervals=5000,
+          __Dymola_Algorithm="Radau"));
+    end WaterWatResClosingValve;
+
+    model SundsbarmWaterway
+      extends Modelica.Icons.Example;
+      inner HydroPower.System_HPL system_HPL(
+        Q_start=31.276,
+        steadyState=true,
+        constantTemperature=true)
+        annotation (Placement(transformation(extent={{-100,80},{-80,100}})));
+      HydroPower.HydroSystems.Reservoir headwater(
+        Hmax=ones(headwater.n)*(564 + 48 + 5),
+        depth=ones(headwater.n)*(48 + 5),
+        H_start=ones(headwater.n)*(564 + 48),
+        steadyState=true)
+        annotation (Placement(transformation(extent={{-96,16},{-76,36}})));
+      HydroPower.HydroSystems.Reservoir tailwater(
+        Hmax=ones(tailwater.n)*(110 + 5 + 3),
+        depth=ones(tailwater.n)*(5 + 3),
+        H_start=ones(tailwater.n)*(110 + 5))
+        annotation (Placement(transformation(extent={{74,-8},{94,12}})));
+      HydroPower.HydroSystems.Pipe conduit(
+        endD={5.8,5.8},
+        L=6600,
+        ZL=564,
+        ZR=541.5,
+        horizontalIcon=true)
+        annotation (Placement(transformation(extent={{-70,10},{-50,30}})));
+      HydroPower.SinksAndSources.Fixed_HT constantWaterHead(
+        paraOption=false,
+        H_const=564 + 48,
+        Hmax=564 + 48 + 5,
+        depth=48 + 5)
+        annotation (Placement(transformation(extent={{-74,50},{-94,70}})));
+      HydroPower.SinksAndSources.Fixed_HT constantTailWater(
+        paraOption=false,
+        H_const=115,
+        Hmax=118,
+        depth=8)
+        annotation (Placement(transformation(extent={{70,20},{90,40}})));
+      HydroPower.HydroSystems.SurgeTank surgeTank(
+        D=3.6,
+        deltZ=150,
+        H2L=0.87,
+        Vol=100)
+        annotation (Placement(transformation(extent={{-40,10},{-20,30}})));
+      HydroPower.HydroSystems.PipeValve pressureshaft(
+        endD={3,3},
+        m_dot_nom=24e3,
+        dp_nom=4893000,
+        L=724,
+        ZL=541.5,
+        ZR=112.5)
+        annotation (Placement(transformation(extent={{-10,4},{10,24}})));
+      Modelica.Blocks.Sources.Ramp ramp(
+        height=-1,
+        duration=1,
+        offset=1,
+        startTime=100)
+        annotation (Placement(transformation(extent={{-40,40},{-20,60}})));
+      HydroPower.HydroSystems.Pipe tailRace(
+        endD={5.8,5.8},
+        L=600,
+        ZL=110.5,
+        ZR=110,
+        horizontalIcon=true)
+        annotation (Placement(transformation(extent={{46,-14},{66,6}})));
+      HydroPower.HydroSystems.HydroComponents.Containers.ClosedVolume
+        turbineHourse(D=5.8, L=2)
+        annotation (Placement(transformation(extent={{24,-2},{36,10}})));
+    equation
+      connect(headwater.a2_pipe, conduit.a)
+        annotation (Line(points={{-75,20},{-71,20}}, color={0,0,255}));
+      connect(headwater.a1_open, constantWaterHead.b) annotation (Line(points={
+              {-97,32},{-100,32},{-100,60},{-95,60}}, color={0,0,255}));
+      connect(tailwater.a2_open, constantTailWater.b) annotation (Line(points={
+              {95,8},{96,8},{96,30},{91,30}}, color={0,0,255}));
+      connect(conduit.b, surgeTank.a)
+        annotation (Line(points={{-49,20},{-41,20}}, color={0,0,255}));
+      connect(surgeTank.b, pressureshaft.a) annotation (Line(points={{-19,20},{
+              -14,20},{-14,14},{-11,14}}, color={0,0,255}));
+      connect(ramp.y, pressureshaft.ValveCtrl)
+        annotation (Line(points={{-19,50},{0,50},{0,25}}, color={0,0,127}));
+      connect(tailwater.a1_pipe, tailRace.b)
+        annotation (Line(points={{73,-4},{67,-4}}, color={0,0,255}));
+      connect(tailRace.a, turbineHourse.b) annotation (Line(points={{45,-4},{40,
+              -4},{40,4},{36,4}}, color={0,0,255}));
+      connect(pressureshaft.b, turbineHourse.a) annotation (Line(points={{11,14},
+              {18,14},{18,4},{24,4}}, color={0,0,255}));
+      annotation (Icon(coordinateSystem(preserveAspectRatio=false, extent={{
+                -120,-100},{100,100}})), Diagram(coordinateSystem(
+              preserveAspectRatio=false, extent={{-100,-100},{100,100}})));
+    end SundsbarmWaterway;
+  end Tutorial6;
   annotation (uses(Modelica(version="3.2.3"), HydroPower(version="2.11")));
 end FM3217_2020;
