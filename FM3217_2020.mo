@@ -900,11 +900,11 @@ package FM3217_2020 "Collection of models as created in FM3217"
         T_start=283.15,
         constantTemperature=true)
         annotation (Placement(transformation(extent={{-90,-80},{-70,-60}})));
-      HydroPower.Visualizers.RealValue gridbalanceNum1(precision=2, input_Value
-          =generator.summary.f[1])
+      HydroPower.Visualizers.RealValue gridbalanceNum1(precision=2, input_Value=
+           generator.summary.f[1])
         annotation (Placement(transformation(extent={{64,53},{78,67}})));
-      HydroPower.Visualizers.RealValue gridbalanceNum2(precision=2, input_Value
-          =generator.summary.P_generator[1]*1e-6)
+      HydroPower.Visualizers.RealValue gridbalanceNum2(precision=2, input_Value=
+           generator.summary.P_generator[1]*1e-6)
         annotation (Placement(transformation(extent={{64,25},{78,39}})));
       HydroPower.SinksAndSources.Fixed_HT warterSource(
         paraOption=false,
@@ -1092,6 +1092,178 @@ package FM3217_2020 "Collection of models as created in FM3217"
         __Dymola_experimentSetupOutput);
     end Sundsbarm;
   end Tutorial7;
+
+  package Tutorial8
+    model EquivalentPowerFlow
+      Modelica.Mechanics.Rotational.Components.Inertia inertia(J=100, w(
+          displayUnit="Hz",
+          start=314.15926535898,
+          fixed=true))
+        annotation (Placement(transformation(extent={{-26,-28},{30,28}})));
+      Modelica.Mechanics.Rotational.Sources.ConstantTorque generator(
+          tau_constant=10)
+        annotation (Placement(transformation(extent={{-86,-10},{-66,10}})));
+      Modelica.Mechanics.Rotational.Sources.ConstantTorque load(tau_constant=-15)
+        annotation (Placement(transformation(extent={{90,-10},{70,10}})));
+    equation
+      connect(inertia.flange_a, generator.flange) annotation (Line(points={{-26,
+              3.55271e-15},{-46,3.55271e-15},{-46,0},{-66,0}}, color={0,0,0}));
+      connect(inertia.flange_b, load.flange) annotation (Line(points={{30,
+              3.55271e-15},{50,3.55271e-15},{50,0},{70,0}}, color={0,0,0}));
+      annotation (
+        Icon(coordinateSystem(preserveAspectRatio=false)),
+        Diagram(coordinateSystem(preserveAspectRatio=false)),
+        experiment(StopTime=100));
+    end EquivalentPowerFlow;
+
+    model FrequencyCalc
+      Modelica.Mechanics.Rotational.Components.Inertia inertia(J=2*200e6/(2*
+            Modelica.Constants.pi*50)^2, w(
+          fixed=true,
+          displayUnit="Hz",
+          start=314.15926535898))
+        annotation (Placement(transformation(extent={{-60,70},{-40,90}})));
+      Modelica.Mechanics.Rotational.Sources.ConstantTorque constantTorque(
+          tau_constant=-10e6/(2*Modelica.Constants.pi*50))
+        annotation (Placement(transformation(extent={{70,70},{50,90}})));
+      Modelica.Mechanics.Rotational.Sensors.PowerSensor powerSensor
+        annotation (Placement(transformation(extent={{0,70},{20,90}})));
+    equation
+      connect(inertia.flange_b, powerSensor.flange_a)
+        annotation (Line(points={{-40,80},{0,80}}, color={0,0,0}));
+      connect(powerSensor.flange_b, constantTorque.flange)
+        annotation (Line(points={{20,80},{50,80}}, color={0,0,0}));
+      annotation (
+        Icon(coordinateSystem(preserveAspectRatio=false)),
+        Diagram(coordinateSystem(preserveAspectRatio=false)),
+        Documentation(info="<html>
+<p>Example</p>
+<p><br>K_1 = 200 MJ</p>
+<p>P_L = 10 MW @ 1 sec</p>
+<p><br>Question: If the inertia was rotating at 50Hz in the beginning what is the speed/frequency after 1 sec?</p>
+<p><br>K_2 = K_1 - P_L * 1 Sec = 200 MJ - 10 MW*1s = 200 MJ - 10 MJ = 190 MJ</p>
+<p>K = 1/2 * J * w<sup>2</sup> = 2 * J * pi<sup>2 </sup>* f<sup>2 </sup></p>
+<p>K1/K2 = 200 MJ / 190 MJ = f_1<sup>2 </sup>/ f_2<sup>2</sup> </p>
+<p>==&gt; f_2 = sqrt(50<sup>2</sup> - 200/190) = <b>48.73 Hz</b></p>
+<p><br>J = 2 * K / w<sup>2</sup></p>
+<p>T = P/w</p>
+</html>"));
+    end FrequencyCalc;
+
+    model FrequencyCalcCorrect
+      extends FrequencyCalc;
+      Modelica.Mechanics.Rotational.Components.Inertia inertia1(J=2*200e6/(2*
+            Modelica.Constants.pi*50)^2, w(
+          fixed=true,
+          displayUnit="Hz",
+          start=314.15926535898))
+        annotation (Placement(transformation(extent={{-60,-10},{-40,10}})));
+      Modelica.Mechanics.Rotational.Sensors.PowerSensor powerSensor1
+        annotation (Placement(transformation(extent={{-10,-10},{10,10}})));
+      Modelica.Mechanics.Rotational.Sources.Torque torque
+        annotation (Placement(transformation(extent={{40,-10},{20,10}})));
+      Modelica.Blocks.Sources.Constant const(k=-10e6)
+        annotation (Placement(transformation(extent={{100,10},{80,30}})));
+      Modelica.Blocks.Math.Division division
+        annotation (Placement(transformation(extent={{72,-10},{52,10}})));
+      Modelica.Mechanics.Rotational.Sensors.SpeedSensor speedSensor
+        annotation (Placement(transformation(extent={{-10,-44},{10,-24}})));
+    equation
+      connect(inertia1.flange_b, powerSensor1.flange_a)
+        annotation (Line(points={{-40,0},{-10,0}}, color={0,0,0}));
+      connect(powerSensor1.flange_b, torque.flange)
+        annotation (Line(points={{10,0},{20,0}}, color={0,0,0}));
+      connect(torque.tau, division.y)
+        annotation (Line(points={{42,0},{51,0}}, color={0,0,127}));
+      connect(const.y, division.u1) annotation (Line(points={{79,20},{76,20},{
+              76,6},{74,6}}, color={0,0,127}));
+      connect(speedSensor.w, division.u2) annotation (Line(points={{11,-34},{86,
+              -34},{86,-6},{74,-6}}, color={0,0,127}));
+      connect(speedSensor.flange, powerSensor1.flange_a) annotation (Line(
+            points={{-10,-34},{-20,-34},{-20,0},{-10,0}}, color={0,0,0}));
+    end FrequencyCalcCorrect;
+
+    model ElectricalPowerFlowCalc
+      Modelica.Electrical.Analog.Basic.Ground ground
+        annotation (Placement(transformation(extent={{-82,2},{-62,22}})));
+      Modelica.Electrical.Analog.Basic.Inductor Xs
+        annotation (Placement(transformation(extent={{-38,70},{-18,90}})));
+      Modelica.Electrical.Analog.Sources.SineVoltage Ea(
+        V=sqrt(2)*250,
+        phase=0,
+        freqHz=50) annotation (Placement(transformation(
+            extent={{-10,-10},{10,10}},
+            rotation=-90,
+            origin={-72,54})));
+      Modelica.Electrical.Analog.Sources.SineVoltage VTerminal(V=sqrt(2)*230,
+          freqHz=50) annotation (Placement(transformation(
+            extent={{-10,-10},{10,10}},
+            rotation=-90,
+            origin={40,50})));
+      Modelica.Electrical.Analog.Sensors.PowerSensor powerSensor
+        annotation (Placement(transformation(extent={{0,70},{20,90}})));
+      Modelica.Electrical.MultiPhase.Basic.Inductor inductor(L={10.0,10.0,10.0})
+        annotation (Placement(transformation(extent={{-56,-10},{-36,10}})));
+      Modelica.Electrical.MultiPhase.Sources.SineVoltage EaM(
+        V=sqrt(2)*{330,330,330},
+        phase=-Modelica.Electrical.MultiPhase.Functions.symmetricOrientation(3)
+             - {30,30,30},
+        freqHz={50,50,50}) annotation (Placement(transformation(
+            extent={{-10,-10},{10,10}},
+            rotation=-90,
+            origin={-72,-28})));
+      Modelica.Electrical.MultiPhase.Sources.SineVoltage VTerminalM(V=sqrt(2)*{
+            230,230,230}, freqHz={50,50,50}) annotation (Placement(
+            transformation(
+            extent={{-10,-10},{10,10}},
+            rotation=-90,
+            origin={40,-26})));
+      Modelica.Electrical.MultiPhase.Basic.Star star annotation (Placement(
+            transformation(
+            extent={{-10,-10},{10,10}},
+            rotation=-90,
+            origin={-72,-56})));
+      Modelica.Electrical.Analog.Basic.Ground ground1
+        annotation (Placement(transformation(extent={{-82,-92},{-62,-72}})));
+      Modelica.Electrical.MultiPhase.Sensors.AronSensor P
+        annotation (Placement(transformation(extent={{-26,-10},{-6,10}})));
+      Modelica.Electrical.MultiPhase.Sensors.ReactivePowerSensor Q
+        annotation (Placement(transformation(extent={{6,-10},{26,10}})));
+    equation
+      connect(Ea.p, Xs.p) annotation (Line(points={{-72,64},{-72,80},{-38,80}},
+            color={0,0,255}));
+      connect(Ea.n, ground.p)
+        annotation (Line(points={{-72,44},{-72,22}}, color={0,0,255}));
+      connect(VTerminal.n, ground.p)
+        annotation (Line(points={{40,40},{-72,40},{-72,22}}, color={0,0,255}));
+      connect(powerSensor.nc, VTerminal.p)
+        annotation (Line(points={{20,80},{40,80},{40,60}}, color={0,0,255}));
+      connect(powerSensor.pc, Xs.n)
+        annotation (Line(points={{0,80},{-18,80}}, color={0,0,255}));
+      connect(powerSensor.pv, VTerminal.p) annotation (Line(points={{10,90},{10,
+              96},{40,96},{40,60}}, color={0,0,255}));
+      connect(powerSensor.nv, ground.p) annotation (Line(points={{10,70},{10,40},
+              {-72,40},{-72,22}}, color={0,0,255}));
+      connect(EaM.plug_p, inductor.plug_p)
+        annotation (Line(points={{-72,-18},{-72,0},{-56,0}}, color={0,0,255}));
+      connect(EaM.plug_n, star.plug_p)
+        annotation (Line(points={{-72,-38},{-72,-46}}, color={0,0,255}));
+      connect(star.pin_n, ground1.p)
+        annotation (Line(points={{-72,-66},{-72,-72}}, color={0,0,255}));
+      connect(VTerminalM.plug_n, star.plug_p) annotation (Line(points={{40,-36},
+              {40,-46},{-72,-46}}, color={0,0,255}));
+      connect(inductor.plug_n, P.plug_p)
+        annotation (Line(points={{-36,0},{-26,0}}, color={0,0,255}));
+      connect(P.plug_n, Q.plug_p)
+        annotation (Line(points={{-6,0},{6,0}}, color={0,0,255}));
+      connect(Q.plug_n, VTerminalM.plug_p)
+        annotation (Line(points={{26,0},{40,0},{40,-16}}, color={0,0,255}));
+      annotation (
+        Icon(coordinateSystem(preserveAspectRatio=false)),
+        Diagram(coordinateSystem(preserveAspectRatio=false)),
+        experiment(__Dymola_NumberOfIntervals=5000));
+    end ElectricalPowerFlowCalc;
+  end Tutorial8;
   annotation (uses(Modelica(version="3.2.3"), HydroPower(version="2.11"),
       Modelon(version="3.5")));
 end FM3217_2020;
