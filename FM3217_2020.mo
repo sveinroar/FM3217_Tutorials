@@ -1264,6 +1264,58 @@ package FM3217_2020 "Collection of models as created in FM3217"
         experiment(__Dymola_NumberOfIntervals=5000));
     end ElectricalPowerFlowCalc;
   end Tutorial8;
+
+  package Tutorial9
+    model SampleCalculations
+      extends Modelica.Icons.Information;
+      annotation (Documentation(info="<html>
+<h4>Sample calculations for production balance in the Power Grid</h4>
+<p>P_grid = 1000 MW</p>
+<p>P_1 = 0.45 * P_grid = 450 MW</p>
+<p>P_1units = 20</p>
+<p>P_1perUnit = P_1 / P_1units = 450 MW / 20 = 22.5 MW</p>
+<p>deltaP = distNoGen * P_1perUnit = -2 * 22.5 = 45 MW</p>
+<p><br>R = -(deltaF/F_r) / (deltaP/P_r)</p>
+<p>deltaP = - P_r * (deltaF/F_r) / R</p>
+<p>deltaP = 45 MW (0.4043/50) / 0.1</p>
+<p>deltaP = 3.638699 MW</p>
+</html>"));
+    end SampleCalculations;
+
+    model ResistiveLoad
+      extends HydroPower.Examples.PlantConnectAndDisconnectToGrid(
+        pwr_ref(offset=45e6),
+        turbineGovernor(enableDroop=false),
+        generator(timeMCB_open={1e6}),
+        powerGrid(
+          loadDiv={1.0,0.0,0.0},
+          NoLoadUnits={200,400,1000},
+          enableDroop=false,
+          NoGenUnits={20,100,500},
+          distTgen={150,1000,1e6},
+          distNoGen={-1,-50,0}));
+      annotation (experiment(
+          StopTime=2000,
+          __Dymola_NumberOfIntervals=5000,
+          Tolerance=1e-05,
+          __Dymola_Algorithm="Radau"));
+    end ResistiveLoad;
+
+    model DroopSimulations
+      extends ResistiveLoad(
+        pwr_ref(offset=22.5e6),
+        turbineGovernor(
+          DeadBand=0,
+          enableDroop=true,
+          ep=0.05),
+        powerGrid(P_grid=100000000, distNoGen={-10,-50,0}));
+      annotation (experiment(
+          StopTime=2000,
+          __Dymola_NumberOfIntervals=5000,
+          Tolerance=1e-05,
+          __Dymola_Algorithm="Radau"));
+    end DroopSimulations;
+  end Tutorial9;
   annotation (uses(Modelica(version="3.2.3"), HydroPower(version="2.11"),
       Modelon(version="3.5")));
 end FM3217_2020;
