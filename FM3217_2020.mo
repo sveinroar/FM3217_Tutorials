@@ -1316,6 +1316,49 @@ package FM3217_2020 "Collection of models as created in FM3217"
           __Dymola_Algorithm="Radau"));
     end DroopSimulations;
   end Tutorial9;
+
+  package Tutorial10
+    model LoadChanges
+      extends HydroPower.Examples.PlantConnectAndDisconnectToGrid(
+        pwr_ref(offset=22.5e6),
+        turbineGovernor(ep=0.1),
+        generator(timeMCB_open={10e6}),
+        powerGrid(
+          loadDiv={0,0,1},
+          enableDroop=false,
+          distTgen={150,1e3,1e6},
+          distNoGen={-1,-50,0}));
+      annotation (experiment(
+          StopTime=2000,
+          __Dymola_NumberOfIntervals=5000,
+          __Dymola_Algorithm="Radau"));
+    end LoadChanges;
+
+    model ProductionDroop
+      extends LoadChanges(powerGrid(
+          loadDiv={0.5,0.25,0.25},
+          enableDroop=true,
+          ep={0.1,0.08,0.04}));
+      annotation (experiment(
+          StopTime=2000,
+          __Dymola_NumberOfIntervals=5000,
+          __Dymola_Algorithm="Radau"));
+    end ProductionDroop;
+
+    model RandomLoad
+      extends LoadChanges(powerGrid(
+          loadDiv={0.5,0.25,0.25},
+          startTime=1e3,
+          h=1,
+          enableDroop=true,
+          ep={0.1,0.08,0.04},
+          distNoGen={-1,0,0}));
+      annotation (experiment(
+          StopTime=2000,
+          __Dymola_NumberOfIntervals=5000,
+          __Dymola_Algorithm="Radau"));
+    end RandomLoad;
+  end Tutorial10;
   annotation (uses(Modelica(version="3.2.3"), HydroPower(version="2.11"),
       Modelon(version="3.5")));
 end FM3217_2020;
