@@ -1359,6 +1359,237 @@ package FM3217_2020 "Collection of models as created in FM3217"
           __Dymola_Algorithm="Radau"));
     end RandomLoad;
   end Tutorial10;
+
+  package Tutorial11
+    record Data
+      parameter Modelica.SIunits.Power Pn=45e6 "Nominal turbine power"
+        annotation (Dialog(group="General"));
+      parameter Integer np(min=2) = 12 "Number of poles of generator"
+        annotation (Dialog(group="General"));
+      parameter Modelica.SIunits.Inertia J=183e3
+        "Turbine and generator inertia"
+        annotation (Dialog(group="Mechanical System"));
+      parameter Modelica.SIunits.Conversions.NonSIunits.AngularVelocity_rpm
+        rpm_n=500 "Nominal turbine speed"
+        annotation (Dialog(group="Mechanical System", enable=false));
+      parameter Modelica.SIunits.AngularVelocity wn=rpm_n/60*2*Modelica.Constants.pi
+        "Nominal angular velocity"
+        annotation (Dialog(group="Mechanical System", enable=false));
+      parameter Modelica.SIunits.Time Ta=J*wn^2/Pn "Mechanical time constatant"
+        annotation (Dialog(group="Mechanical System", enable=false));
+      parameter Modelica.SIunits.VolumeFlowRate Q_n=92 "Nominal flow rate"
+        annotation (Dialog(group="WaterWay"));
+      parameter Modelica.SIunits.Length H_n=50 "Nominal water head"
+        annotation (Dialog(group="WaterWay"));
+      parameter Modelica.SIunits.Length L[2]={200,100}
+        "Total length of the waterway" annotation (Dialog(group="WaterWay"));
+      parameter Modelica.SIunits.Length d[2]={5.5,5.5} "Average pipe diameter"
+        annotation (Dialog(group="WaterWay"));
+      parameter Modelica.SIunits.Area A[2]=Modelica.Constants.pi/4*d .^ 2
+        "Average pipe area" annotation (Dialog(group="WaterWay", enable=false));
+      parameter Modelica.SIunits.Time Tw=Q_n/(Modelica.Constants.g_n*H_n)*(L[1]
+          /A[1] + L[2]/A[2]) annotation (Dialog(group="WaterWay", enable=false));
+      annotation (Icon(coordinateSystem(preserveAspectRatio=false)), Diagram(
+            coordinateSystem(preserveAspectRatio=false)),
+        experiment(StopTime=500));
+    end Data;
+
+    model MechanicalTF
+      Data data
+        annotation (Placement(transformation(extent={{-100,80},{-80,100}})));
+      Modelica.Blocks.Sources.Constant one(k=1)
+        annotation (Placement(transformation(extent={{-58,-24},{-38,-4}})));
+      Modelica.Blocks.Sources.Trapezoid powerChange(
+        amplitude=0.2,
+        rising=50,
+        width=50,
+        falling=50,
+        period=200,
+        nperiod=-1,
+        offset=-0.1,
+        startTime=25)
+        annotation (Placement(transformation(extent={{-96,18},{-76,38}})));
+      Modelica.Blocks.Continuous.TransferFunction MechanicalSystem(a={data.Ta,0})
+        annotation (Placement(transformation(extent={{-58,18},{-38,38}})));
+      Modelica.Blocks.Math.Gain w(k=data.wn)
+        annotation (Placement(transformation(extent={{20,-2},{40,18}})));
+      Modelica.Blocks.Math.Add add
+        annotation (Placement(transformation(extent={{-18,-2},{2,18}})));
+      Modelica.Blocks.Math.Gain P(k=data.Pn)
+        annotation (Placement(transformation(extent={{-54,76},{-34,96}})));
+      Modelica.Blocks.Math.Division division
+        annotation (Placement(transformation(extent={{-18,70},{2,90}})));
+      Modelica.Mechanics.Rotational.Sources.Torque torque
+        annotation (Placement(transformation(extent={{20,70},{40,90}})));
+      Modelica.Mechanics.Rotational.Components.Inertia inertia(J=data.J, w(
+            fixed=true, start=data.wn))
+        annotation (Placement(transformation(extent={{50,70},{70,90}})));
+      Modelica.Mechanics.Rotational.Sensors.SpeedSensor speedSensor annotation (
+         Placement(transformation(
+            extent={{-10,-10},{10,10}},
+            rotation=-90,
+            origin={80,64})));
+    equation
+      connect(powerChange.y, MechanicalSystem.u)
+        annotation (Line(points={{-75,28},{-60,28}}, color={0,0,127}));
+      connect(MechanicalSystem.y, add.u1) annotation (Line(points={{-37,28},{
+              -28,28},{-28,14},{-20,14}}, color={0,0,127}));
+      connect(one.y, add.u2) annotation (Line(points={{-37,-14},{-28,-14},{-28,
+              2},{-20,2}}, color={0,0,127}));
+      connect(add.y, w.u)
+        annotation (Line(points={{3,8},{18,8}}, color={0,0,127}));
+      connect(P.y, division.u1)
+        annotation (Line(points={{-33,86},{-20,86}}, color={0,0,127}));
+      connect(P.u, MechanicalSystem.u) annotation (Line(points={{-56,86},{-64,
+              86},{-64,28},{-60,28}}, color={0,0,127}));
+      connect(division.y, torque.tau)
+        annotation (Line(points={{3,80},{18,80}}, color={0,0,127}));
+      connect(torque.flange, inertia.flange_a)
+        annotation (Line(points={{40,80},{50,80}}, color={0,0,0}));
+      connect(inertia.flange_b, speedSensor.flange)
+        annotation (Line(points={{70,80},{80,80},{80,74}}, color={0,0,0}));
+      connect(speedSensor.w, division.u2) annotation (Line(points={{80,53},{80,
+              40},{-28,40},{-28,74},{-20,74}}, color={0,0,127}));
+      annotation (
+        Icon(coordinateSystem(preserveAspectRatio=false)),
+        Diagram(coordinateSystem(preserveAspectRatio=false)),
+        experiment(StopTime=600));
+    end MechanicalTF;
+
+    model WaterWayTF
+      Data data
+        annotation (Placement(transformation(extent={{-100,80},{-80,100}})));
+      Modelica.Blocks.Continuous.TransferFunction waterWay(
+        b={-data.Tw,1},
+        a={data.Tw/2,1},
+        initType=Modelica.Blocks.Types.Init.InitialOutput,
+        y_start=1)
+        annotation (Placement(transformation(extent={{-58,18},{-38,38}})));
+      Modelica.Blocks.Math.Gain Ph_TF(k=data.Pn)
+        annotation (Placement(transformation(extent={{-10,18},{10,38}})));
+      Modelica.Blocks.Sources.Ramp Opening(
+        height=-0.9,
+        duration=10,
+        offset=1,
+        startTime=50)
+        annotation (Placement(transformation(extent={{-94,18},{-74,38}})));
+      HydroPower.SinksAndSources.Fixed_pT fixed_pT(paraOption=false)
+        annotation (Placement(transformation(extent={{-60,60},{-40,80}})));
+      HydroPower.HydroSystems.PipeValve pipeValve(
+        endD=data.d,
+        m_dot_nom=data.Q_n*1000,
+        dp_nom=550000,
+        L=data.L[1] + data.L[2],
+        ZL=data.H_n)
+        annotation (Placement(transformation(extent={{-30,60},{-10,80}})));
+      HydroPower.SinksAndSources.Fixed_pT fixed_pT1(paraOption=false)
+        annotation (Placement(transformation(extent={{38,60},{18,80}})));
+      inner HydroPower.System_HPL system_HPL(
+        pipeRoughness=0,
+        steadyState=true,
+        Q_start=data.Q_n,
+        constantTemperature=true)
+        annotation (Placement(transformation(extent={{80,80},{100,100}})));
+      Modelica.Blocks.Sources.RealExpression Q_valve(y=pipeValve.summary.Q_valve)
+        annotation (Placement(transformation(extent={{-68,-20},{-28,0}})));
+      Modelica.Blocks.Sources.RealExpression dp_valve(y=pipeValve.summary.dp_valve)
+        annotation (Placement(transformation(extent={{-68,-36},{-28,-18}})));
+      Modelica.Blocks.Math.Product Ph
+        annotation (Placement(transformation(extent={{-10,-28},{10,-8}})));
+      Modelica.Blocks.Math.Feedback error
+        annotation (Placement(transformation(extent={{26,18},{46,38}})));
+    equation
+      connect(waterWay.y, Ph_TF.u)
+        annotation (Line(points={{-37,28},{-12,28}}, color={0,0,127}));
+      connect(Opening.y, waterWay.u)
+        annotation (Line(points={{-73,28},{-60,28}}, color={0,0,127}));
+      connect(pipeValve.a, fixed_pT.b)
+        annotation (Line(points={{-31,70},{-39,70}}, color={0,0,255}));
+      connect(pipeValve.ValveCtrl, waterWay.u) annotation (Line(points={{-20,81},
+              {-20,92},{-68,92},{-68,28},{-60,28}}, color={0,0,127}));
+      connect(fixed_pT1.b, pipeValve.b)
+        annotation (Line(points={{17,70},{-9,70}}, color={0,0,255}));
+      connect(Q_valve.y, Ph.u1) annotation (Line(points={{-26,-10},{-18,-10},{
+              -18,-12},{-12,-12}}, color={0,0,127}));
+      connect(dp_valve.y, Ph.u2) annotation (Line(points={{-26,-27},{-20,-27},{
+              -20,-24},{-12,-24}}, color={0,0,127}));
+      connect(Ph_TF.y, error.u1)
+        annotation (Line(points={{11,28},{28,28}}, color={0,0,127}));
+      connect(Ph.y, error.u2)
+        annotation (Line(points={{11,-18},{36,-18},{36,20}}, color={0,0,127}));
+      annotation (
+        Icon(coordinateSystem(preserveAspectRatio=false)),
+        Diagram(coordinateSystem(preserveAspectRatio=false)),
+        experiment(StopTime=500));
+    end WaterWayTF;
+
+    model TFbasedModel
+      Data data
+        annotation (Placement(transformation(extent={{-100,78},{-80,98}})));
+      inner HydroPower.System_HPL system_HPL
+        annotation (Placement(transformation(extent={{-62,80},{-42,100}})));
+      Modelica.Blocks.Continuous.TransferFunction waterWay(
+        b={-data.Tw,1},
+        a={data.Tw/2,1},
+        initType=Modelica.Blocks.Types.Init.InitialOutput,
+        y_start=1)
+        annotation (Placement(transformation(extent={{-14,16},{6,36}})));
+      Modelica.Blocks.Math.Feedback feedback
+        annotation (Placement(transformation(extent={{18,16},{38,36}})));
+      Modelica.Blocks.Continuous.TransferFunction MechanicalSystem(a={data.Ta,0})
+        annotation (Placement(transformation(extent={{50,16},{70,36}})));
+      HydroPower.ControllersAndSensors.TurbineGovernorAnalog turbineGovernorTF(
+        ep=1,
+        DeadBand=0,
+        Ki_load=0.1,
+        Kd_load=0.5,
+        Kd_noLoad=0.05,
+        Ki_noLoad=0.025,
+        K_noLoad=0.2,
+        K_load=0.4,
+        tRamp=40,
+        P_generator_nom=data.Pn,
+        enableRamp=false) annotation (Placement(transformation(extent={{-44,16},
+                {-24,36}}, rotation=0)));
+      Modelica.Blocks.Sources.Constant zero(k=0)
+        annotation (Placement(transformation(extent={{-94,24},{-74,44}})));
+      Modelica.Blocks.Sources.BooleanConstant MCBon(k=false)
+        annotation (Placement(transformation(extent={{-96,52},{-76,72}})));
+      Modelica.Blocks.Math.Add add(k1=1/data.Pn, k2=1/data.Pn)
+        annotation (Placement(transformation(extent={{-16,-20},{4,0}})));
+      Modelica.Blocks.Sources.RealExpression turbineLosses(y=2.26e6)
+        annotation (Placement(transformation(extent={{-70,-14},{-30,6}})));
+      Modelica.Blocks.Sources.RealExpression gridLoad(y=0e6)
+        annotation (Placement(transformation(extent={{-70,-26},{-30,-8}})));
+    equation
+      connect(waterWay.y, feedback.u1)
+        annotation (Line(points={{7,26},{20,26}}, color={0,0,127}));
+      connect(feedback.y, MechanicalSystem.u)
+        annotation (Line(points={{37,26},{48,26}}, color={0,0,127}));
+      connect(waterWay.u, turbineGovernorTF.y)
+        annotation (Line(points={{-16,26},{-23,26}}, color={0,0,127}));
+      connect(MechanicalSystem.y, turbineGovernorTF.f) annotation (Line(points=
+              {{71,26},{80,26},{80,-34},{-76,-34},{-76,19},{-45,19}}, color={0,
+              0,127}));
+      connect(zero.y, turbineGovernorTF.P_generator) annotation (Line(points={{
+              -73,34},{-60,34},{-60,33},{-45,33}}, color={0,0,127}));
+      connect(turbineGovernorTF.P_reference, turbineGovernorTF.P_generator)
+        annotation (Line(points={{-40,37},{-40,44},{-48,44},{-48,33},{-45,33}},
+            color={0,0,127}));
+      connect(MCBon.y, turbineGovernorTF.isMCB) annotation (Line(points={{-75,
+              62},{-34,62},{-34,37}}, color={255,0,255}));
+      connect(add.y, feedback.u2)
+        annotation (Line(points={{5,-10},{28,-10},{28,18}}, color={0,0,127}));
+      connect(turbineLosses.y, add.u1)
+        annotation (Line(points={{-28,-4},{-18,-4}}, color={0,0,127}));
+      connect(gridLoad.y, add.u2) annotation (Line(points={{-28,-17},{-24,-17},
+              {-24,-16},{-18,-16}}, color={0,0,127}));
+      annotation (
+        Icon(coordinateSystem(preserveAspectRatio=false)),
+        Diagram(coordinateSystem(preserveAspectRatio=false)),
+        experiment(StopTime=500, __Dymola_Algorithm="Radau"));
+    end TFbasedModel;
+  end Tutorial11;
   annotation (uses(Modelica(version="3.2.3"), HydroPower(version="2.11"),
       Modelon(version="3.5")));
 end FM3217_2020;
